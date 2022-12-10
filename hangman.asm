@@ -1,12 +1,14 @@
 .data
-welcome: .asciiz "Welcome to mips hangman! This is a 2 player game in which player 1 chooses a word then player 2 tries to guess within 6 guesses\nTo procede choose one of the options\n(1)New Game\n(2)Exit"
-msg0: .asciiz "\nPlayer 1 enter the word your thinking of "
-# reserve 64 bytes for the word with .space
-word: .space 64
-
+welcome: .asciiz "Welcome to mips hangman! Try to guess the word within 6 guesses\nTo procede choose one of the options\n(1)New Game\n(2)Exit"
+word1: .asciiz "button"
+word2: .asciiz "pocket"
+word3: .asciiz "smooth"
+word4: .asciiz "fought"
+word5: .asciiz "planet"
+listWords: .word word1 word2 word3 word4 word5
 errorMSG: .asciiz "INVALID INPUT"
 .text
-
+################ reg's to what place, $s1 is the current user guess t2 is counter, t3 is 6
 # macros
 .macro introMsg()
 	la $a0, welcome
@@ -36,10 +38,54 @@ errorMSG: .asciiz "INVALID INPUT"
 	syscall
 .end_macro
 
-.macro isItRight()
+.macro enterLetter()
 	.data
 	msg0: .asciiz "Player 2 enter a letter "
-	msg1: .asciiz "In which spaces "
+	.text
+	la $a0,msg0
+	li $v0,4
+	syscall
+	li $v0,12
+	syscall
+	move $s1,$v0  # s1 is user guess
+	li $a0,'\n'
+	li $v0,11
+	syscall
+.end_macro 
+.macro updateGame(%a,%b)
+	.data
+		k: .byte %a
+		l: .byte %b
+	.text
+	check:
+		la $a0,k
+		la $t9,l
+		beq $a0,$t9,change
+		bne $a0,$t9,exit
+	change:
+		
+	exit:
+		
+		
+.end_macro 
+.macro loopThroughGuess()
+.text
+	li $t2,0
+	li $t3,6
+	la $t0,word1
+	
+loop:
+	beq $t2,$t3,end
+	lb $t4,0($t0)
+	#t4 has the letter call macro that beq's and updates the board
+	updateGame($s1,$t4)
+	addi $t2,$t2,1
+	addi $t0,$t0,1
+	j loop
+end:
+
+	
+	
 .end_macro 
 main:
 # t0 is used for the first user input from introMSG
@@ -49,17 +95,26 @@ main:
 
 game:
 #s1 is the word
-	la $a0, msg0
-	li $v0,4
-	syscall
-	li $v0,8
-	la $a0, word
-    	li $a1, 64
-	syscall
-	move $s1,$v0
-	li $t1,6
-	printAmountGuesses($t1)
 	
+	li $t2,0 #counter
+	li $t3,6 #total loops
+	j hideWord
+	
+hideWord:
+	beq $t2,$t3,continue
+	li $a0,'_'
+	li $v0,11
+	syscall
+	li $a0, ' '
+	li $v0,11
+	syscall
+	addi $t2,$t2,1
+	j hideWord
+continue:
+	li $t1,6
+	printAmountGuesses($t1)	
+	enterLetter()
+	loopThroughGuess()
 	
 exit:
 	li $v0,10

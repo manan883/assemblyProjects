@@ -142,8 +142,7 @@ end:
 	
 	
 .end_macro 
-
-#not working rn
+#this macro resets the game so all the conditions that are altered from playing through it are set back to the initial conditions
 .macro resetGame()
 	la $s2, buffer
 	la $s3, savedWord

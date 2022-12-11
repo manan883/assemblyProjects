@@ -1,5 +1,5 @@
 .data
-welcome: .asciiz "Welcome to mips hangman! Try to guess the word within 15 guesses\nTo procede choose one of the options\n(1)New Game\n(2)Exit"
+welcome: .asciiz "\nWelcome to mips hangman! Try to guess the word within 15 guesses\nTo procede choose one of the options\n(1)New Game\n(2)Exit"
 word1: .asciiz "button"
 word2: .asciiz "pocket"
 word3: .asciiz "smooth"
@@ -10,6 +10,9 @@ default: .asciiz "      "
 savedWord: .asciiz "      "
 errorMSG: .asciiz "INVALID INPUT"
 current: .asciiz "Current correct guesses are: "
+buffer:   .space 256 
+win: .asciiz "YOU WIN!\n"
+wordMsg: .asciiz "The word was "
 .text
 ################ reg's to what place, $s1 is the current user guess t2 is counter, t3 is 5
 # macros
@@ -40,6 +43,9 @@ current: .asciiz "Current correct guesses are: "
 .macro introMsg()
 	la $a0, welcome
 	li $v0,4
+	syscall
+	li $a0,'\n'
+	li $v0,11
 	syscall
 	li $v0,5
 	syscall
@@ -142,27 +148,39 @@ end:
 	
 .end_macro 
 
-#not working rn
+# resets the saved string back to spaces
 .macro resetGame()
-	la $t0,savedWord
-	li $t1,0
-loop:	
-	beq $t0,6,end
-	li $t4,' '
-	sb $t4,0($t0)
-	addi $t0,$t0,1
-	addi $t1,$t1,1
-	# j loop
-end:
+
+	la $s2, buffer
+
+	la $s3, savedWord
+
+	la $s4, default
+
+
+
+copySecondString:  
+	lb $t0, ($s4)                  # get character at address  
+	sb $t0, ($s3)                  # store current character in the buffer
+	beqz $t0, exit                 # exit if null
+	sb $t0, ($s3)                  # else store current character in the buffer  
+	addi $s4, $s4, 1               # savedWord pointer points a position forward  
+	addi $s3, $s3, 1               # same for buffer pointer  
+	j copySecondString             # loop     
+exit:
+
 	
-	
+
 .end_macro
 ######
 
 main:
 # t0 is used for the first user input from introMSG
+	resetGame()
 	randomize()
 	introMsg()
+	li $t9,3
+	tge $t0,$t9
 	beq $t0,1,game
 	beq $t0,2,exit
 
@@ -185,14 +203,32 @@ hideWord:
 	li $s2,0 #correct guesses
 	j hideWord
 continue:
-	beq $s2,6,exit
-	beq $t7,0,exit
+	beq $s2,6,redoWin
+	beq $t7,0,redo
 	enterLetter()
 	loopThroughGuess()
 	addi $t7,$t7,-1
 	printAmountGuesses($t7)
 	j continue
-	
+redoWin:
+	la $a0,win
+	li $v0,4
+	syscall
+	la $a0,wordMsg
+	li $v0,4
+	syscall
+	move $a0,$s5
+	li $v0,4
+	syscall
+	j main	
+redo:
+	la $a0,wordMsg
+	li $v0,4
+	syscall
+	move $a0,$s5
+	li $v0,4
+	syscall
+	j main	
 exit:
 	li $v0,10
 	syscall	

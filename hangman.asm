@@ -35,8 +35,6 @@ current: .asciiz "Current correct guesses are: "
 	add $t0,$t0,$t1
 	lw $s5,0($t0)
 	move $a0,$s5
-	li $v0,4
-	syscall
 .end_macro
 #intro message and grab input from the user on what they want to do
 .macro introMsg()

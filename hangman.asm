@@ -13,9 +13,10 @@ current: .asciiz "Current correct guesses are: "
 .text
 ################ reg's to what place, $s1 is the current user guess t2 is counter, t3 is 5
 # macros
+#this macro randomizes an int and chooses the word based on the int. to randomize an int you need to generate the seed first which is done using syscall 30 and 40
 .macro randomize()
 				# get the time
-	li	$v0, 30		# get time in milliseconds (as a 64-bit value)
+	li	$v0, 30		# get time in milliseconds (as a 64-bit value), mars syscall
 	syscall
 
 	move	$t0, $a0	# save the lower 32-bits of time
@@ -27,6 +28,7 @@ current: .asciiz "Current correct guesses are: "
 	li	$a1, 6		# upper bound of the range
 	li	$v0, 42		# random int range
 	syscall
+	#choose the word by doing int*4 and lw the list of words
 	la $t0,listWords
 	mul $a0,$a0,4
 	move $t1,$a0
@@ -36,6 +38,7 @@ current: .asciiz "Current correct guesses are: "
 	li $v0,4
 	syscall
 .end_macro
+#intro message and grab input from the user on what they want to do
 .macro introMsg()
 	la $a0, welcome
 	li $v0,4
@@ -44,7 +47,7 @@ current: .asciiz "Current correct guesses are: "
 	syscall
 	move $t0,$v0
 .end_macro
-
+#take in an argument and print the statement you have x guesses left
 .macro printAmountGuesses(%guess)
 	.data
 	msg1: .asciiz "\nYou have "
@@ -63,10 +66,10 @@ current: .asciiz "Current correct guesses are: "
 	li $v0,11
 	syscall
 .end_macro
-
+#this grab the user input for the guess, it will read in an char and save it to s1
 .macro enterLetter()
 	.data
-	msg0: .asciiz "Player 2 enter a letter "
+	msg0: .asciiz "Player enter a letter "
 	.text
 	la $a0,msg0
 	li $v0,4
@@ -78,6 +81,8 @@ current: .asciiz "Current correct guesses are: "
 	li $v0,11
 	syscall
 .end_macro 
+#this method will check the user guess vs the current byte that is loaded into the register, 
+# if it matches it prints the guess and saves it to the final word. else it prints a _ and doesnt change the final word
 .macro updateGame()
 	check:
 		move $a0,$s1
@@ -103,10 +108,12 @@ current: .asciiz "Current correct guesses are: "
 		
 		
 .end_macro 
+#this macro will loop through the specific word and then call updateGame to do the check on the current position vs user input
 .macro loopThroughGuess()
 .text
 	li $t2,0
 	li $t3,6
+	#this moves the word that is to be guessed into t0 from s5 which was saved in the random macro
 	move $t0,$s5
 	la $t5,savedWord 
 	
@@ -136,6 +143,8 @@ end:
 	
 	
 .end_macro 
+
+#not working rn
 .macro resetGame()
 	la $t0,savedWord
 	li $t1,0
@@ -150,6 +159,8 @@ end:
 	
 	
 .end_macro
+######
+
 main:
 # t0 is used for the first user input from introMSG
 	randomize()
@@ -157,14 +168,13 @@ main:
 	beq $t0,1,game
 	beq $t0,2,exit
 
-game:
-#s1 is the word
-	
+game:	
 	li $t2,0 #counter
 	li $t3,6 #total loops
 	j hideWord
 	
 hideWord:
+#this will print out _ plus a space for how long the word is, in this case 6 letters so it will look like _ _ _ _ _ _
 	beq $t2,$t3,continue
 	li $a0,'_'
 	li $v0,11
@@ -179,7 +189,6 @@ hideWord:
 continue:
 	beq $s2,6,exit
 	beq $t7,0,exit
-	li $t1,6
 	enterLetter()
 	loopThroughGuess()
 	addi $t7,$t7,-1

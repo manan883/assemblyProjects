@@ -6,9 +6,11 @@ word3: .asciiz "smooth"
 word4: .asciiz "fought"
 word5: .asciiz "planet"
 listWords: .word word1 word2 word3 word4 word5
+savedWord: .asciiz "      "
 errorMSG: .asciiz "INVALID INPUT"
+current: .asciiz "Current correct guesses are: "
 .text
-################ reg's to what place, $s1 is the current user guess t2 is counter, t3 is 6
+################ reg's to what place, $s1 is the current user guess t2 is counter, t3 is 5
 # macros
 .macro introMsg()
 	la $a0, welcome
@@ -52,19 +54,27 @@ errorMSG: .asciiz "INVALID INPUT"
 	li $v0,11
 	syscall
 .end_macro 
-.macro updateGame(%a,%b)
-	.data
-		k: .byte %a
-		l: .byte %b
-	.text
+.macro updateGame()
 	check:
-		la $a0,k
-		la $t9,l
-		beq $a0,$t9,change
-		bne $a0,$t9,exit
+		move $a0,$s1
+		move $t9,$t4
 	change:
-		
+		bne $a0,$t9,print_
+		beq $a0,$t9,printGuess
+	printGuess:
+		sb $a0,0($t5)
+		li $v0,11
+		syscall
+		j exit
+	print_:
+		li $a0, ' ' 
+		li $v0,11
+		syscall
+		li $a0,'_'
+		li $v0,11
+		syscall
 	exit:
+		
 		
 		
 .end_macro 
@@ -73,16 +83,32 @@ errorMSG: .asciiz "INVALID INPUT"
 	li $t2,0
 	li $t3,6
 	la $t0,word1
+	la $t5,savedWord 
 	
 loop:
 	beq $t2,$t3,end
 	lb $t4,0($t0)
 	#t4 has the letter call macro that beq's and updates the board
-	updateGame($s1,$t4)
+	updateGame()
 	addi $t2,$t2,1
 	addi $t0,$t0,1
+	addi $t5,$t5,1
+	la $a0,savedWord
+	beq $a0,$t0,exit
 	j loop
 end:
+	li $a0,'\n'
+	li $v0,11
+	syscall
+	la $a0,current
+	li $v0,4
+	syscall
+	la $a0,savedWord
+	li $v0,4
+	syscall
+	li $a0,'\n'
+	li $v0,11
+	syscall
 
 	
 	
@@ -109,12 +135,16 @@ hideWord:
 	li $v0,11
 	syscall
 	addi $t2,$t2,1
+	li $t7,6 #guesses
 	j hideWord
 continue:
+	beq $t7,0,exit
 	li $t1,6
-	printAmountGuesses($t1)	
 	enterLetter()
 	loopThroughGuess()
+	addi $t7,$t7,-1
+	printAmountGuesses($t7)
+	j continue
 	
 exit:
 	li $v0,10

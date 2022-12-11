@@ -1,5 +1,5 @@
 .data
-welcome: .asciiz "Welcome to mips hangman! Try to guess the word within 15 guesses\nTo procede choose one of the options\n(1)New Game\n(2)Exit"
+welcome: .asciiz "\nWelcome to mips hangman! Try to guess the word within 15 guesses\nTo procede choose one of the options\n(1)New Game\n(2)Exit\n"
 word1: .asciiz "button"
 word2: .asciiz "pocket"
 word3: .asciiz "smooth"
@@ -10,8 +10,9 @@ default: .asciiz "      "
 savedWord: .asciiz "      "
 errorMSG: .asciiz "INVALID INPUT"
 current: .asciiz "Current correct guesses are: "
+buffer:   .space 256       # A 256 bytes buffer 
 .text
-################ reg's to what place, $s1 is the current user guess t2 is counter, t3 is 5
+################ reg's to what place, $s1 is the current user guess, t2 is counter, t3 is 5
 # macros
 .macro randomize()
 				# get the time
@@ -137,17 +138,19 @@ end:
 	
 .end_macro 
 .macro resetGame()
-	la $t0,savedWord
-	li $t1,0
-loop:	
-	beq $t0,6,end
-	li $t4,' '
-	sb $t4,0($t0)
-	addi $t0,$t0,1
-	addi $t1,$t1,1
-	# j loop
-end:
-	
+	la $s2, buffer
+	la $s3, savedWord
+	la $s4, default
+
+copySecondString:  
+	lb $t0, ($s4)                  # get character at address  
+	sb $t0, ($s3)                  # store current character in the buffer
+	beqz $t0, exit                 # exit if null
+	sb $t0, ($s3)                  # else store current character in the buffer  
+	addi $s4, $s4, 1               # savedWord pointer points a position forward  
+	addi $s3, $s3, 1               # same for buffer pointer  
+	j copySecondString             # loop     
+exit:
 	
 .end_macro
 main:
@@ -177,8 +180,8 @@ hideWord:
 	li $s2,0 #correct guesses
 	j hideWord
 continue:
-	beq $s2,6,exit
-	beq $t7,0,exit
+	beq $s2,6,reset
+	beq $t7,0,reset
 	li $t1,6
 	enterLetter()
 	loopThroughGuess()
@@ -190,7 +193,9 @@ exit:
 	li $v0,10
 	syscall	
 
-
+reset:
+	resetGame()
+	j main
 
 
 .ktext 0x80000180
